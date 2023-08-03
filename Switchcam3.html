@@ -97,11 +97,13 @@
 
       if (timerValue === 10) {
         mediaRecorder.pause();
+        recordButton.innerText = "Resume";
       }
 
       if (timerValue <= 0) {
         mediaRecorder.stop();
         clearInterval(timerInterval);
+        recordButton.innerText = "Record";
       }
     }
 
