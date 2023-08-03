@@ -6,6 +6,7 @@
   <title>Record Video</title>
 </head>
 <body>
+  <h4>CAMER</h4>
   <div>
     <video style="width: 250px; height: 300px; background-color: red;" autoplay></video>
     <button id="recordBtn" onclick="recordVideo()" disabled>Record</button>
@@ -55,19 +56,26 @@
 
     function recordVideo() {
       if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
+        videoEle.pause();
+        mediaRecorder.pause();
         clearInterval(timerInterval);
+        recordButton.innerText = "Resume";
       } else {
-        recordedChunks = [];
-        timerValue = 20;
-        timerElement.innerText = timerValue;
+        if (!mediaRecorder) {
+          recordedChunks = [];
+          timerValue = 20;
+          timerElement.innerText = timerValue;
+          base64TextArea.value = ""; // Clear the textarea
+        }
 
         mediaRecorder = new MediaRecorder(mediaStream);
         mediaRecorder.ondataavailable = handleDataAvailable;
         mediaRecorder.onstop = handleStop;
 
         mediaRecorder.start();
+        videoEle.play();
         timerInterval = setInterval(updateTimer, 1000);
+        recordButton.innerText = "Pause";
       }
     }
 
@@ -95,14 +103,11 @@
       timerValue--;
       timerElement.innerText = timerValue;
 
-      if (timerValue === 10) {
-        videoEle.pause();
-        mediaRecorder.pause();
-      }
-
       if (timerValue <= 0) {
         mediaRecorder.stop();
         clearInterval(timerInterval);
+        recordButton.disabled = true;
+        recordButton.innerText = "Record";
       }
     }
 
