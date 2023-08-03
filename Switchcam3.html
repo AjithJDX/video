@@ -6,7 +6,6 @@
   <title>Record Video</title>
 </head>
 <body>
-  <h3>Cam</h3>
   <div>
     <video style="width: 250px; height: 300px; background-color: red;" autoplay></video>
     <button id="recordBtn" onclick="recordVideo()" disabled>Record</button>
@@ -97,14 +96,13 @@
       timerElement.innerText = timerValue;
 
       if (timerValue === 10) {
+        videoEle.pause();
         mediaRecorder.pause();
-        recordButton.innerText = "Resume";
       }
 
       if (timerValue <= 0) {
         mediaRecorder.stop();
         clearInterval(timerInterval);
-        recordButton.innerText = "Record";
       }
     }
 
