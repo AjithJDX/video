@@ -12,12 +12,16 @@
     <div id="timer"></div>
     <button id="switchBtn" onclick="switchCamera()">Switch</button>
   </div>
+  <textarea id="base64TextArea" style="width: 100%; height: 150px;" readonly></textarea>
+  <button id="copyBtn" onclick="copyBase64()" disabled>Copy to Clipboard</button>
 
   <script>
     const videoEle = document.querySelector("video");
     const recordButton = document.getElementById("recordBtn");
     const switchButton = document.getElementById("switchBtn");
     const timerElement = document.getElementById("timer");
+    const base64TextArea = document.getElementById("base64TextArea");
+    const copyButton = document.getElementById("copyBtn");
     let front = false;
     let mediaRecorder = null;
     let mediaStream = null;
@@ -77,6 +81,14 @@
       const recordedBlob = new Blob(recordedChunks, { type: "video/webm" });
       const recordedUrl = URL.createObjectURL(recordedBlob);
       console.log("Recorded Video URL:", recordedUrl);
+
+      // Display base64 value of recorded video in the textarea
+      const reader = new FileReader();
+      reader.onloadend = function () {
+        base64TextArea.value = reader.result;
+        copyButton.disabled = false;
+      };
+      reader.readAsDataURL(recordedBlob);
     }
 
     function updateTimer() {
@@ -91,6 +103,12 @@
         mediaRecorder.stop();
         clearInterval(timerInterval);
       }
+    }
+
+    function copyBase64() {
+      base64TextArea.select();
+      document.execCommand("copy");
+      alert("Base64 value copied to clipboard!");
     }
 
     // Initially, get the video stream with the default facing mode (front camera)
