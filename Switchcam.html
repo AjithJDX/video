@@ -6,6 +6,7 @@
   <title>Record Video</title>
 </head>
 <body>
+  <h2>Hai Cam</h2>
   <div>
     <video style="width: 250px; height: 300px; background-color: red;" autoplay></video>
     <button id="recordBtn" onclick="recordVideo()" disabled>Record</button>
@@ -24,6 +25,7 @@
     let recordedChunks = [];
     let timerInterval = null;
     let timerValue = 20;
+    let timerStarted = false;
 
     function switchCamera() {
       front = !front;
@@ -42,6 +44,9 @@
           videoEle.srcObject = stream;
           recordButton.disabled = false;
           switchButton.disabled = false;
+          if (timerStarted) {
+            mediaRecorder.resume();
+          }
           console.log(stream);
         })
         .catch((error) => {
@@ -53,10 +58,12 @@
       if (mediaRecorder && mediaRecorder.state === "recording") {
         mediaRecorder.stop();
         clearInterval(timerInterval);
+        timerStarted = false;
       } else {
         recordedChunks = [];
         timerValue = 20;
         timerElement.innerText = timerValue;
+        timerStarted = true;
 
         mediaRecorder = new MediaRecorder(mediaStream);
         mediaRecorder.ondataavailable = handleDataAvailable;
