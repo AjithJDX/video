@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Video Recording Example</title>
+  </head>
+  <body>
+    <video id="video" autoplay></video>
+    <button id="recordBtn" onclick="startRecording()">Start Recording</button>
+    <button id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
+    <div id="timer"></div>
+
+    <script>
+      let stream;
+      let mediaRecorder;
+      let chunks = [];
+      let isRecording = false;
+      let isPaused = false;
+      let countdownInterval;
+      let totalSeconds = 0;
+      let remainingSeconds = 0;
+
+      const videoElement = document.getElementById('video');
+      const recordButton = document.getElementById('recordBtn');
+      const pauseButton = document.getElementById('pauseBtn');
+      const timerElement = document.getElementById('timer');
+
+      function startRecording() {
+        recordButton.disabled = true;
+        timerElement.textContent = 'Recording...';
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then((mediaStream) => {
+            stream = mediaStream;
+            videoElement.srcObject = mediaStream;
+            mediaRecorder = new MediaRecorder(mediaStream);
+
+            mediaRecorder.addEventListener('dataavailable', (event) => {
+              chunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener('stop', () => {
+              const blob = new Blob(chunks, { type: 'video/webm' });
+              chunks = [];
+              videoElement.srcObject = null;
+              videoElement.src = URL.createObjectURL(blob);
+              videoElement.controls = true;
+              recordButton.disabled = false;
+              pauseButton.disabled = true;
+              timerElement.textContent = '';
+            });
+
+            mediaRecorder.start();
+            isRecording = true;
+            remainingSeconds = 0;
+            countdownInterval = setInterval(() => {
+              remainingSeconds++;
+              totalSeconds++;
+              timerElement.textContent = `Recording... ${remainingSeconds}s`;
+
+              if (remainingSeconds === 10) {
+                clearInterval(countdownInterval);
+                switchToRearCamera()
+                  .then(() => {
+                    mediaRecorder.pause();
+                    isPaused = true;
+                    pauseButton.disabled = false;
+                    timerElement.textContent = 'Recording Paused';
+                  })
+                  .catch((error) => {
+                    console.error('Error switching to the rear camera.', error);
+                    mediaRecorder.pause();
+                    isPaused = true;
+                    pauseButton.disabled = false;
+                    timerElement.textContent = 'Recording Paused';
+                  });
+              }
+            }, 1000);
+          })
+          .catch((error) => {
+            console.error('Error accessing media devices.', error);
+          });
+      }
+
+      function togglePause() {
+        if (isPaused) {
+          mediaRecorder.resume();
+          isPaused = false;
+          pauseButton.textContent = 'Pause';
+          remainingSeconds = 10;
+          countdownInterval = setInterval(() => {
+            remainingSeconds++;
+            totalSeconds++;
+            timerElement.textContent = `Recording... ${remainingSeconds}s`;
+
+            if (remainingSeconds === 20) {
+              clearInterval(countdownInterval);
+              mediaRecorder.stop();
+              isRecording = false;
+              pauseButton.disabled = true;
+              timerElement.textContent = '';
+            }
+          }, 1000);
+        } else {
+          mediaRecorder.pause();
+          isPaused = true;
+          pauseButton.textContent = 'Resume';
+          clearInterval(countdownInterval);
+          timerElement.textContent = 'Recording Paused';
+        }
+      }
+
+      function switchToRearCamera() {
+        // MediaTrackCapabilities and facingMode are not standardized yet,
+        // so this might not work on all devices or browsers.
+        // Also, this example assumes there are at least two video devices (front and rear cameras).
+        return navigator.mediaDevices.enumerateDevices()
+          .then((devices) => {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const rearCamera = videoDevices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear'));
+            if (rearCamera) {
+              return navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: rearCamera.deviceId } } });
+            } else {
+              throw new Error('Rear camera not found.');
+            }
+          })
+          .then((mediaStream) => {
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            stream = mediaStream;
+            videoElement.srcObject = mediaStream;
+          });
+      }
+    </script>
+  </body>
+</html>
