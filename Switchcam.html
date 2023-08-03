@@ -1,94 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Record and Switch Camera</title>
-  </head>
-  <body>
-    <div>
-      <video
-        style="width: 250px; height: 300px; background-color: red"
-        autoplay
-      ></video>
-      <button id="switchButton">Switch</button>
-    </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Record Video</title>
+</head>
+<body>
+  <div>
+    <video style="width: 250px; height: 300px; background-color: red;" autoplay></video>
+    <button id="recordBtn" onclick="recordVideo()" disabled>Record</button>
+    <div id="timer"></div>
+    <button id="switchBtn" onclick="switchCamera()">Switch</button>
+  </div>
 
-    <script>
-      const videoEle = document.querySelector("video");
-      let front = false;
-      let mediaStream = null;
-      let recordedChunks = [];
+  <script>
+    const videoEle = document.querySelector("video");
+    const recordButton = document.getElementById("recordBtn");
+    const switchButton = document.getElementById("switchBtn");
+    const timerElement = document.getElementById("timer");
+    let front = false;
+    let mediaRecorder = null;
+    let mediaStream = null;
+    let recordedChunks = [];
+    let timerInterval = null;
+    let timerValue = 20;
 
-      function startRecording() {
+    function switchCamera() {
+      front = !front;
+      const facingMode = front ? "user" : "environment";
+
+      if (mediaStream) {
+        const tracks = mediaStream.getTracks();
+        tracks.forEach((track) => track.stop());
+      }
+
+      // Request a new media stream with the updated facingMode
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: facingMode } })
+        .then((stream) => {
+          mediaStream = stream;
+          videoEle.srcObject = stream;
+          recordButton.disabled = false;
+          switchButton.disabled = false;
+          console.log(stream);
+        })
+        .catch((error) => {
+          console.error("Error accessing media devices:", error);
+        });
+    }
+
+    function recordVideo() {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        clearInterval(timerInterval);
+      } else {
         recordedChunks = [];
-        const options = { mimeType: "video/webm; codecs=vp9" };
-        mediaRecorder = new MediaRecorder(mediaStream, options);
+        timerValue = 20;
+        timerElement.innerText = timerValue;
 
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            recordedChunks.push(event.data);
-          }
-        };
-
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(recordedChunks, { type: "video/webm" });
-          const reader = new FileReader();
-
-          reader.onloadend = () => {
-            const base64data = reader.result.split(",")[1];
-            console.log("Base64 Video:", base64data);
-          };
-
-          reader.readAsDataURL(blob);
-        };
+        mediaRecorder = new MediaRecorder(mediaStream);
+        mediaRecorder.ondataavailable = handleDataAvailable;
+        mediaRecorder.onstop = handleStop;
 
         mediaRecorder.start();
-        setTimeout(pauseRecording, 10000);
+        timerInterval = setInterval(updateTimer, 1000);
       }
+    }
 
-      function pauseRecording() {
+    function handleDataAvailable(event) {
+      if (event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    }
+
+    function handleStop() {
+      const recordedBlob = new Blob(recordedChunks, { type: "video/webm" });
+      const recordedUrl = URL.createObjectURL(recordedBlob);
+      console.log("Recorded Video URL:", recordedUrl);
+    }
+
+    function updateTimer() {
+      timerValue--;
+      timerElement.innerText = timerValue;
+
+      if (timerValue <= 0) {
+        recordButton.innerText = "Stop";
+        recordVideo();
+      } else if (timerValue === 10) {
+        recordButton.innerText = "Resume";
         mediaRecorder.pause();
-        switchCamera();
-        setTimeout(resumeRecording, 10000);
       }
+    }
 
-      function resumeRecording() {
-        mediaRecorder.resume();
-        setTimeout(stopRecording, 10000);
-      }
-
-      function stopRecording() {
-        mediaRecorder.stop();
-      }
-
-      function switchCamera() {
-        front = !front;
-        const facingMode = front ? "user" : "environment";
-
-        if (mediaStream) {
-          const tracks = mediaStream.getTracks();
-          tracks.forEach((track) => track.stop());
-        }
-
-        window.navigator.mediaDevices
-          .getUserMedia({ video: { facingMode: facingMode } })
-          .then((stream) => {
-            mediaStream = stream;
-            videoEle.srcObject = stream;
-            console.log(stream);
-          })
-          .catch((error) => {
-            console.error("Error accessing media devices:", error);
-          });
-      }
-
-      const switchButton = document.getElementById("switchButton");
-      switchButton.addEventListener("click", () => {
-        startRecording();
-      });
-
-      switchCamera(); // Initially, get the video stream with the default facing mode (front camera)
-    </script>
-  </body>
+    // Initially, get the video stream with the default facing mode (front camera)
+    switchCamera();
+  </script>
+</body>
 </html>
