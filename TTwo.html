@@ -10,14 +10,13 @@
     </style>
   </head>
   <body>
-    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fpsnnnn</h2>
-    <video id="video" autoplay width="320" height="240"></video>
+    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fps</h2>
+    <video id="video" autoplay muted playsinline width="320" height="240"></video>
     <button id="recordBtn">Start Recording</button>
     <div id="timer"></div>
     <br>
     <div>
-      <!-- Use the 'playsinline' attribute for Safari -->
-      <video id="preview" controls width="320" height="240" playsinline></video>
+      <video id="preview" controls  autoplay muted playsinline width="320" height="240"></video>
       <div id="previewSize"></div>
     </div>
     <br>
