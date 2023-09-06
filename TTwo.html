@@ -14,16 +14,17 @@
     <video id="video" autoplay width="320" height="240"></video>
     <button id="recordBtn">Start Recording</button>
     <div id="timer"></div>
-    <br />
+    <br>
     <div>
-      <video id="preview" controls width="320" height="240"></video>
+      <!-- Use the 'playsinline' attribute for Safari -->
+      <video id="preview" controls width="320" height="240" playsinline></video>
       <div id="previewSize"></div>
     </div>
-    <br />
+    <br>
     <div>
       <div id="compressedSize"></div>
     </div>
-    <br />
+    <br>
     <textarea id="compressedBase64Text" cols="50" rows="5" readonly></textarea>
 
     <script>
@@ -47,62 +48,57 @@
 
       function startVideoRecording() {
         if (!isRecording) {
-          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices
-              .getUserMedia({ video: { width: 320, height: 240, frameRate: 15 } })
-              .then((mediaStream) => {
-                stream = mediaStream;
-                videoElement.srcObject = mediaStream;
+          navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15, } })
+            .then((mediaStream) => {
+              stream = mediaStream;
+              videoElement.srcObject = mediaStream; 
 
-                mediaRecorder = new MediaRecorder(mediaStream);
-                mediaRecorder.start();
-                isRecording = true;
+              mediaRecorder = new MediaRecorder(mediaStream);
+              mediaRecorder.start();
+              isRecording = true;
 
-                let remainingSeconds = 50;
-                countdownInterval = setInterval(() => {
-                  remainingSeconds--;
-                  timerElement.textContent = `Recording... ${remainingSeconds}s`;
+              let remainingSeconds = 10;
+              countdownInterval = setInterval(() => {
+                remainingSeconds--;
+                timerElement.textContent = `Recording... ${remainingSeconds}s`;
 
-                  if (remainingSeconds === 0) {
-                    clearInterval(countdownInterval);
-                    mediaRecorder.stop();
-                    isRecording = false;
-                    recordButton.disabled = true;
-                    timerElement.textContent = '';
-                  }
-                }, 1000);
+                if (remainingSeconds === 0) {
+                  clearInterval(countdownInterval);
+                  mediaRecorder.stop();
+                  isRecording = false;
+                  recordButton.disabled = true;
+                  timerElement.textContent = '';
+                }
+              }, 1000);
 
-                mediaRecorder.ondataavailable = (event) => {
-                  chunks.push(event.data);
+              mediaRecorder.ondataavailable = (event) => {
+                chunks.push(event.data);
+              };
+
+              mediaRecorder.onstop = async () => {
+                const videoBlob = new Blob(chunks);
+                previewElement.src = URL.createObjectURL(videoBlob);
+                chunks = [];
+
+                displayVideoSize(videoBlob, previewSizeElement);
+
+                const compressedVideoBlob = await compressVideo(videoBlob);
+                displayVideoSize(compressedVideoBlob, compressedSizeElement);
+
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  const base64data = reader.result;
+                  const base64WithoutType = base64data.split(',')[1]; // Remove data type prefix
+                  //compressedBase64Text.value =`data:video/mp4;base64,${base64WithoutType}`;
+                  compressedBase64Text.value = base64WithoutType;
+                  console.log('Compressed Video Base64 Value:', base64WithoutType);
                 };
-
-                mediaRecorder.onstop = async () => {
-                  const videoBlob = new Blob(chunks);
-                  previewElement.src = window.URL.createObjectURL(videoBlob);
-                  chunks = [];
-
-                  displayVideoSize(videoBlob, previewSizeElement);
-
-                  const compressedVideoBlob = await compressVideo(videoBlob);
-                  displayVideoSize(compressedVideoBlob, compressedSizeElement);
-
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    const base64data = reader.result;
-                    const base64WithoutType = base64data.split(',')[1]; // Remove data type prefix
-                    //compressedBase64Text.value =`data:video/mp4;base64,${base64WithoutType}`;
-                    compressedBase64Text.value = base64WithoutType;
-                    console.log('Compressed Video Base64 Value:', base64WithoutType);
-                  };
-                  reader.readAsDataURL(compressedVideoBlob);
-                };
-              })
-              .catch((error) => {
-                console.error('Error accessing media devices.', error);
-              });
-          } else {
-            alert('getUserMedia is not supported in this browser.');
-          }
+                reader.readAsDataURL(compressedVideoBlob);
+              };
+            })
+            .catch((error) => {
+              console.error('Error accessing media devices.', error);
+            });
         }
       }
 
@@ -119,12 +115,24 @@
       }
 
       async function transcodeVideo(videoBlob) {
-        // Simulating video transcoding process
-        await sleep(3000); // Simulate processing time
-        return videoBlob;
+        const transcoder = new VideoTranscoder();
+        const options = {
+          quality: 'low', // Set video quality to low
+        };
+        const compressedBlob = await transcoder.transcode(videoBlob, options);
+        return compressedBlob;
       }
 
-      // Helper function for delaying execution
+      // Helper class for video transcoding (mock implementation)
+      class VideoTranscoder {
+        async transcode(videoBlob, options) {
+          // Simulating video transcoding process
+          await sleep(3000); // Simulate processing time
+          return videoBlob;
+        }
+      }
+ 
+      // Helper function for delaying execution 
       function sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
