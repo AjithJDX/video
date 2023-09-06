@@ -1,124 +1,194 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Record Video</title>
-</head>
-<body>
-  <h4>CAMER</h4>
-  <div>
-    <video style="width: 250px; height: 300px; background-color: red;" autoplay></video>
-    <button id="recordBtn" onclick="recordVideo()" disabled>Record</button>
+<html>
+  <head>
+    <title>Video Recording Example</title>
+    <style>
+      #cameraQuality {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fpsRRRRRRRR</h2>
+    <video id="video" autoplay muted playsinline width="320" height="240"></video>
+    <button id="recordBtn">Start Recording</button>
+    <button id="rerecoredBtn">RE Recording</button>
     <div id="timer"></div>
-    <button id="switchBtn" onclick="switchCamera()">Switch</button>
-  </div>
-  <textarea id="base64TextArea" style="width: 100%; height: 150px;" readonly></textarea>
-  <button id="copyBtn" onclick="copyBase64()" disabled>Copy to Clipboard</button>
+    <br>
+    <div>
+      <video id="preview" controls autoplay muted playsinline width="320" height="240"></video>
+      <div id="previewSize"></div>
+    </div>
+    <br>
+    <div>
+      <div id="compressedSize"></div>
+    </div>
+    <br>
+    <textarea id="compressedBase64Text" cols="50" rows="5" readonly></textarea>
+    <button id="copyBase64Value">Copy Base64 Value</button>
+    <button id="downloadBase64">Download Base64 as Text File</button>
+    <script>
+      let stream;
+      let mediaRecorder;
+      let chunks = [];
+      let isRecording = false;
+      let countdownInterval;
 
-  <script>
-    const videoEle = document.querySelector("video");
-    const recordButton = document.getElementById("recordBtn");
-    const switchButton = document.getElementById("switchBtn");
-    const timerElement = document.getElementById("timer");
-    const base64TextArea = document.getElementById("base64TextArea");
-    const copyButton = document.getElementById("copyBtn");
-    let front = false;
-    let mediaRecorder = null;
-    let mediaStream = null;
-    let recordedChunks = [];
-    let timerInterval = null;
-    let timerValue = 20;
+      const videoElement = document.getElementById('video');
+      const recordButton = document.getElementById('recordBtn');
+      const timerElement = document.getElementById('timer');
+      const previewElement = document.getElementById('preview');
+      const previewSizeElement = document.getElementById('previewSize');
+      const compressedSizeElement = document.getElementById('compressedSize');
+      const compressedBase64Text = document.getElementById('compressedBase64Text');
+      const cameraQualityElement = document.getElementById('cameraQuality');
+      const copyBase64Button = document.getElementById('copyBase64Value');
+      const downloadBase64Button = document.getElementById('downloadBase64');
+      const reRecordButton = document.getElementById('rerecoredBtn');
+      // Start video recording
+      recordButton.addEventListener('click', startVideoRecording);
 
-    function switchCamera() {
-      front = !front;
-      const facingMode = front ? "user" : "environment";
+      // Copy Base64 Value to Clipboard
+      copyBase64Button.addEventListener('click', copyBase64ToClipboard);
 
-      if (mediaStream) {
-        const tracks = mediaStream.getTracks();
-        tracks.forEach((track) => track.stop());
-      }
+      // Download Base64 as Text File
+      downloadBase64Button.addEventListener('click', downloadBase64TextFile);
+// Re-record button click event
 
-      // Request a new media stream with the updated facingMode
-      navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: facingMode } })
-        .then((stream) => {
-          mediaStream = stream;
-          videoEle.srcObject = stream;
-          recordButton.disabled = false;
-          switchButton.disabled = false;
-          console.log(stream);
-        })
-        .catch((error) => {
-          console.error("Error accessing media devices:", error);
-        });
-    }
+reRecordButton.addEventListener('click', reRecordVideo);
 
-    function recordVideo() {
-      if (mediaRecorder && mediaRecorder.state === "recording") {
-        videoEle.pause();
-        mediaRecorder.pause();
-        clearInterval(timerInterval);
-        recordButton.innerText = "Resume";
-      } else {
-        if (!mediaRecorder) {
-          recordedChunks = [];
-          timerValue = 20;
-          timerElement.innerText = timerValue;
-          base64TextArea.value = ""; // Clear the textarea
+function reRecordVideo() {
+  if (!isRecording) {
+    // Clear the previous preview and compressed video
+    previewElement.src = '';
+    previewSizeElement.textContent = '';
+    compressedSizeElement.textContent = '';
+    compressedBase64Text.value = '';
+
+    // Reset the record button
+    recordButton.disabled = false;
+
+    // Start recording again
+    startVideoRecording();
+  }
+}
+
+      function startVideoRecording() {
+        if (!isRecording) {
+          navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 } })
+            .then((mediaStream) => {
+              stream = mediaStream;
+              videoElement.srcObject = mediaStream;
+
+              mediaRecorder = new MediaRecorder(mediaStream);
+              mediaRecorder.start();
+              isRecording = true;
+
+              let remainingSeconds = 10;
+              countdownInterval = setInterval(() => {
+                remainingSeconds--;
+                timerElement.textContent = `Recording... ${remainingSeconds}s`;
+
+                if (remainingSeconds === 0) {
+                  clearInterval(countdownInterval);
+                  mediaRecorder.stop();
+                  isRecording = false;
+                  recordButton.disabled = true;
+                  timerElement.textContent = '';
+                }
+              }, 1000);
+
+              mediaRecorder.ondataavailable = (event) => {
+                chunks.push(event.data);
+              };
+
+              mediaRecorder.onstop = async () => {
+                const videoBlob = new Blob(chunks);
+                previewElement.src = URL.createObjectURL(videoBlob);
+                previewElement.loop = true;
+                previewElement.play();
+                chunks = [];
+
+                displayVideoSize(videoBlob, previewSizeElement);
+
+                const compressedVideoBlob = await compressVideo(videoBlob);
+                displayVideoSize(compressedVideoBlob, compressedSizeElement);
+
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  const base64data = reader.result;
+                  const base64WithoutType = base64data.split(',')[1];
+                  compressedBase64Text.value = base64WithoutType;
+                  console.log('Compressed Video Base64 Value:', base64WithoutType);
+                  
+                  // Set the Base64 video source for preview
+                  previewElement.src = `data:video/mp4;base64,${base64WithoutType}`;
+                };
+                reader.readAsDataURL(compressedVideoBlob);
+              };
+            })
+            .catch((error) => {
+              console.error('Error accessing media devices.', error);
+            });
         }
-
-        mediaRecorder = new MediaRecorder(mediaStream);
-        mediaRecorder.ondataavailable = handleDataAvailable;
-        mediaRecorder.onstop = handleStop;
-
-        mediaRecorder.start();
-        videoEle.play();
-        timerInterval = setInterval(updateTimer, 1000);
-        recordButton.innerText = "Pause";
       }
-    }
 
-    function handleDataAvailable(event) {
-      if (event.data.size > 0) {
-        recordedChunks.push(event.data);
+      // Display video size
+      function displayVideoSize(videoBlob, element) {
+        const fileSizeMB = (videoBlob.size / 1024 / 1024).toFixed(2);
+        const fileSizeKB = Math.round(videoBlob.size / 1024);
+        element.textContent = `Video Size: ${fileSizeMB} MB (${fileSizeKB} KB)`;
       }
-    }
 
-    function handleStop() {
-      const recordedBlob = new Blob(recordedChunks, { type: "video/webm" });
-      const recordedUrl = URL.createObjectURL(recordedBlob);
-      console.log("Recorded Video URL:", recordedUrl);
-
-      // Display base64 value of recorded video in the textarea
-      const reader = new FileReader();
-      reader.onloadend = function () {
-        base64TextArea.value = reader.result;
-        copyButton.disabled = false;
-      };
-      reader.readAsDataURL(recordedBlob);
-    }
-
-    function updateTimer() {
-      timerValue--;
-      timerElement.innerText = timerValue;
-
-      if (timerValue <= 0) {
-        mediaRecorder.stop();
-        clearInterval(timerInterval);
-        recordButton.disabled = true;
-        recordButton.innerText = "Record";
+      async function compressVideo(videoBlob) {
+        const compressedBlob = await transcodeVideo(videoBlob);
+        return compressedBlob;
       }
-    }
 
-    function copyBase64() {
-      base64TextArea.select();
-      document.execCommand("copy");
-      alert("Base64 value copied to clipboard!");
-    }
+      async function transcodeVideo(videoBlob) {
+        const transcoder = new VideoTranscoder();
+        const options = {
+          quality: 'low',
+        };
+        const compressedBlob = await transcoder.transcode(videoBlob, options);
+        return compressedBlob;
+      }
 
-    // Initially, get the video stream with the default facing mode (front camera)
-    switchCamera();
-  </script>
-</body>
+      class VideoTranscoder {
+        async transcode(videoBlob, options) {
+          // Simulating video transcoding process
+          await sleep(3000); // Simulate processing time
+          return videoBlob;
+        }
+      }
+
+      // Helper function for delaying execution
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      // Copy the Base64 value to clipboard
+      function copyBase64ToClipboard() {
+        compressedBase64Text.select();
+        document.execCommand('copy');
+        alert('Base64 Value Copied to Clipboard');
+      }
+
+      // Download Base64 as a text file
+      function downloadBase64TextFile() {
+        const base64Data = compressedBase64Text.value;
+        const blob = new Blob([base64Data], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'base64data.txt';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    </script>
+  </body>
 </html>
