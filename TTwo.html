@@ -10,13 +10,13 @@
     </style>
   </head>
   <body>
-    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fpsSSSSSSS</h2>
+    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fps</h2>
     <video id="video" autoplay muted playsinline width="320" height="240"></video>
     <button id="recordBtn">Start Recording</button>
     <div id="timer"></div>
     <br>
     <div>
-      <video id="preview" controls  autoplay muted playsinline width="320" height="240"></video>
+      <video id="preview" controls autoplay muted playsinline width="320" height="240"></video>
       <div id="previewSize"></div>
     </div>
     <br>
@@ -77,6 +77,8 @@
               mediaRecorder.onstop = async () => {
                 const videoBlob = new Blob(chunks);
                 previewElement.src = URL.createObjectURL(videoBlob);
+                previewElement.loop = true; // Ensure the video loops
+                previewElement.play(); // Start playing the video
                 chunks = [];
 
                 displayVideoSize(videoBlob, previewSizeElement);
