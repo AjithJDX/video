@@ -10,7 +10,7 @@
     </style>
   </head>
   <body>
-    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fpsppppppppp</h2>
+    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fpsppppppppp55555</h2>
     <video id="video" autoplay width="320" height="240"></video>
     <button id="recordBtn">Start Recording</button>
     <div id="timer"></div>
@@ -58,7 +58,7 @@
                 mediaRecorder.start();
                 isRecording = true;
 
-                let remainingSeconds = 50;
+                let remainingSeconds = 10;
                 countdownInterval = setInterval(() => {
                   remainingSeconds--;
                   timerElement.textContent = `Recording... ${remainingSeconds}s`;
