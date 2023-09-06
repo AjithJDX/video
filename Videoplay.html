@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Base64 Video Decoder</title>
+</head>
+<body>
+  <textarea id="base64Input" rows="5" cols="50" placeholder="Paste base64-encoded video here"></textarea>
+  <button onclick="decodeBase64Video()">Decode and Play</button>
+  <br><br>
+  <div id="videoContainer"></div>
+  <p id="videoSize"></p>
+
+  <script>
+    function decodeBase64Video() {
+      var base64Input = document.getElementById('base64Input').value;
+      var videoContainer = document.getElementById('videoContainer');
+      var videoSizeDisplay = document.getElementById('videoSize');
+      
+      // Create a new video element
+      var video = document.createElement('video');
+     video.src = 'data:video/mp4;base64,'+ base64Input;
+      //video.src =  base64Input;
+      video.controls = true;
+      
+      // Create an iframe to contain the video element
+      var iframe = document.createElement('iframe');
+      iframe.style.width = '640px';
+      iframe.style.height = '360px';
+      
+      // Clear previous video, if any
+      videoContainer.innerHTML = '';
+      
+      // Append the iframe to the video container
+      videoContainer.appendChild(iframe);
+      
+      // Wait for the iframe to be appended before accessing its document
+      setTimeout(function() {
+        var iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+        
+        // Add the video element to the iframe's document
+        iframeDocument.body.appendChild(video);
+        
+        // Play the video
+        video.play();
+        
+        // Display video size
+        var videoSize = (base64Input.length * 0.75) / (1024 * 1024); // Calculate video size in MB
+        videoSizeDisplay.textContent = 'Video Size: ' + videoSize.toFixed(2) + ' MB';
+      }, 0);
+    }
+  </script>
+</body>
+</html>
