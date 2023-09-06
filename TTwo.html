@@ -10,7 +10,7 @@
     </style>
   </head>
   <body>
-    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fps</h2>
+    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fpsyyyyyy</h2>
     <video id="video" autoplay muted playsinline width="320" height="240"></video>
     <button id="recordBtn">Start Recording</button>
     <div id="timer"></div>
@@ -25,7 +25,7 @@
     </div>
     <br>
     <textarea id="compressedBase64Text" cols="50" rows="5" readonly></textarea>
-
+    <button id="copyBase64Value">Copy Base64 Value</button>
     <script>
       let stream;
       let mediaRecorder;
@@ -41,16 +41,20 @@
       const compressedSizeElement = document.getElementById('compressedSize');
       const compressedBase64Text = document.getElementById('compressedBase64Text');
       const cameraQualityElement = document.getElementById('cameraQuality');
+      const copyBase64Button = document.getElementById('copyBase64Value');
 
       // Start video recording
       recordButton.addEventListener('click', startVideoRecording);
 
+      // Copy Base64 Value to Clipboard
+      copyBase64Button.addEventListener('click', copyBase64ToClipboard);
+
       function startVideoRecording() {
         if (!isRecording) {
-          navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15, } })
+          navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 } })
             .then((mediaStream) => {
               stream = mediaStream;
-              videoElement.srcObject = mediaStream; 
+              videoElement.srcObject = mediaStream;
 
               mediaRecorder = new MediaRecorder(mediaStream);
               mediaRecorder.start();
@@ -77,8 +81,8 @@
               mediaRecorder.onstop = async () => {
                 const videoBlob = new Blob(chunks);
                 previewElement.src = URL.createObjectURL(videoBlob);
-                previewElement.loop = true; // Ensure the video loops
-                previewElement.play(); // Start playing the video
+                previewElement.loop = true;
+                previewElement.play();
                 chunks = [];
 
                 displayVideoSize(videoBlob, previewSizeElement);
@@ -89,8 +93,7 @@
                 const reader = new FileReader();
                 reader.onloadend = () => {
                   const base64data = reader.result;
-                  const base64WithoutType = base64data.split(',')[1]; // Remove data type prefix
-                  //compressedBase64Text.value =`data:video/mp4;base64,${base64WithoutType}`;
+                  const base64WithoutType = base64data.split(',')[1];
                   compressedBase64Text.value = base64WithoutType;
                   console.log('Compressed Video Base64 Value:', base64WithoutType);
                 };
@@ -118,13 +121,12 @@
       async function transcodeVideo(videoBlob) {
         const transcoder = new VideoTranscoder();
         const options = {
-          quality: 'low', // Set video quality to low
+          quality: 'low',
         };
         const compressedBlob = await transcoder.transcode(videoBlob, options);
         return compressedBlob;
       }
 
-      // Helper class for video transcoding (mock implementation)
       class VideoTranscoder {
         async transcode(videoBlob, options) {
           // Simulating video transcoding process
@@ -132,10 +134,17 @@
           return videoBlob;
         }
       }
- 
-      // Helper function for delaying execution 
+
+      // Helper function for delaying execution
       function sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      // Copy the Base64 value to clipboard
+      function copyBase64ToClipboard() {
+        compressedBase64Text.select();
+        document.execCommand('copy');
+        alert('Base64 Value Copied to Clipboard');
       }
     </script>
   </body>
