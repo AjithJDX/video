@@ -1,102 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Record Video</title>
-</head>
-<body>
-  <div>
-    <video style="width: 250px; height: 300px; background-color: red;" autoplay></video>
-    <button id="recordBtn" onclick="recordVideo()" disabled>Record</button>
+<html>
+  <head>
+    <title>Video Recording Example</title>
+    <style>
+      #cameraQuality {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2 id="cameraQuality">Camera Quality is: 480x320, 30fps</h2>
+    <video id="video" autoplay muted playsinline width="320" height="240"></video>
+    <button id="recordBtn">Start Recording</button>
     <div id="timer"></div>
-    <button id="switchBtn" onclick="switchCamera()">Switch</button>
-  </div>
+    <br>
+    <div>
+      <video id="preview" controls autoplay muted playsinline width="320" height="240"></video>
+      <div id="previewSize"></div>
+    </div>
+    <br>
+    <div>
+      <div id="compressedSize"></div>
+    </div>
+    <br>
+    <textarea id="compressedBase64Text" cols="50" rows="5" readonly></textarea>
+    <button id="copyBase64Value">Copy Base64 Value</button>
+    <button id="downloadBase64">Download Base64 as Text File</button>
+    <script>
+      let stream;
+      let mediaRecorder;
+      let chunks = [];
+      let isRecording = false;
+      let countdownInterval;
 
-  <script>
-    const videoEle = document.querySelector("video");
-    const recordButton = document.getElementById("recordBtn");
-    const switchButton = document.getElementById("switchBtn");
-    const timerElement = document.getElementById("timer");
-    let front = false;
-    let mediaRecorder = null;
-    let mediaStream = null;
-    let recordedChunks = [];
-    let timerInterval = null;
-    let timerValue = 20;
-    let isRecording = false;
+      const videoElement = document.getElementById('video');
+      const recordButton = document.getElementById('recordBtn');
+      const timerElement = document.getElementById('timer');
+      const previewElement = document.getElementById('preview');
+      const previewSizeElement = document.getElementById('previewSize');
+      const compressedSizeElement = document.getElementById('compressedSize');
+      const compressedBase64Text = document.getElementById('compressedBase64Text');
+      const cameraQualityElement = document.getElementById('cameraQuality');
+      const copyBase64Button = document.getElementById('copyBase64Value');
+      const downloadBase64Button = document.getElementById('downloadBase64');
 
-    function switchCamera() {
-      front = !front;
-      const facingMode = front ? "user" : "environment";
+      // Start video recording
+      recordButton.addEventListener('click', startVideoRecording);
 
-      if (mediaStream) {
-        const tracks = mediaStream.getTracks();
-        tracks.forEach((track) => track.stop());
+      // Copy Base64 Value to Clipboard
+      copyBase64Button.addEventListener('click', copyBase64ToClipboard);
+
+      // Download Base64 as Text File
+      downloadBase64Button.addEventListener('click', downloadBase64TextFile);
+
+      function startVideoRecording() {
+        if (!isRecording) {
+          navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 } })
+            .then((mediaStream) => {
+              stream = mediaStream;
+              videoElement.srcObject = mediaStream;
+
+              mediaRecorder = new MediaRecorder(mediaStream);
+              mediaRecorder.start();
+              isRecording = true;
+
+              let remainingSeconds = 10;
+              countdownInterval = setInterval(() => {
+                remainingSeconds--;
+                timerElement.textContent = `Recording... ${remainingSeconds}s`;
+
+                if (remainingSeconds === 0) {
+                  clearInterval(countdownInterval);
+                  mediaRecorder.stop();
+                  isRecording = false;
+                  recordButton.disabled = true;
+                  timerElement.textContent = '';
+                }
+              }, 1000);
+
+              mediaRecorder.ondataavailable = (event) => {
+                chunks.push(event.data);
+              };
+
+              mediaRecorder.onstop = async () => {
+                const videoBlob = new Blob(chunks);
+                previewElement.src = URL.createObjectURL(videoBlob);
+                previewElement.loop = true;
+                previewElement.play();
+                chunks = [];
+
+                displayVideoSize(videoBlob, previewSizeElement);
+
+                const compressedVideoBlob = await compressVideo(videoBlob);
+                displayVideoSize(compressedVideoBlob, compressedSizeElement);
+
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  const base64data = reader.result;
+                  const base64WithoutType = base64data.split(',')[1];
+                  compressedBase64Text.value = base64WithoutType;
+                  console.log('Compressed Video Base64 Value:', base64WithoutType);
+                };
+                reader.readAsDataURL(compressedVideoBlob);
+              };
+            })
+            .catch((error) => {
+              console.error('Error accessing media devices.', error);
+            });
+        }
       }
 
-      // Request a new media stream with the updated facingMode
-      navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: facingMode } })
-        .then((stream) => {
-          mediaStream = stream;
-          videoEle.srcObject = stream;
-          recordButton.disabled = false;
-          switchButton.disabled = false;
-          console.log(stream);
-        })
-        .catch((error) => {
-          console.error("Error accessing media devices:", error);
-        });
-    }
-
-    function recordVideo() {
-      if (isRecording) {
-        mediaRecorder.stop();
-        clearInterval(timerInterval);
-        timerElement.innerText = "";
-        recordButton.innerText = "Record";
-        isRecording = false;
-      } else {
-        recordedChunks = [];
-        timerValue = 20;
-        timerElement.innerText = timerValue;
-
-        mediaRecorder = new MediaRecorder(mediaStream);
-        mediaRecorder.ondataavailable = handleDataAvailable;
-        mediaRecorder.onstop = handleStop;
-
-        mediaRecorder.start();
-        timerInterval = setInterval(updateTimer, 1000);
-        isRecording = true;
+      // Display video size
+      function displayVideoSize(videoBlob, element) {
+        const fileSizeMB = (videoBlob.size / 1024 / 1024).toFixed(2);
+        const fileSizeKB = Math.round(videoBlob.size / 1024);
+        element.textContent = `Video Size: ${fileSizeMB} MB (${fileSizeKB} KB)`;
       }
-    }
 
-    function handleDataAvailable(event) {
-      if (event.data.size > 0) {
-        recordedChunks.push(event.data);
+      async function compressVideo(videoBlob) {
+        const compressedBlob = await transcodeVideo(videoBlob);
+        return compressedBlob;
       }
-    }
 
-    function handleStop() {
-      const recordedBlob = new Blob(recordedChunks, { type: "video/webm" });
-      const recordedUrl = URL.createObjectURL(recordedBlob);
-      console.log("Recorded Video URL:", recordedUrl);
-    }
-
-    function updateTimer() {
-      timerValue--;
-      timerElement.innerText = timerValue;
-
-      if (timerValue === 10) {
-        mediaRecorder.pause();
-      } else if (timerValue <= 0) {
-        recordButton.click(); // Stop recording
+      async function transcodeVideo(videoBlob) {
+        const transcoder = new VideoTranscoder();
+        const options = {
+          quality: 'low',
+        };
+        const compressedBlob = await transcoder.transcode(videoBlob, options);
+        return compressedBlob;
       }
-    }
 
-    // Initially, get the video stream with the default facing mode (front camera)
-    switchCamera();
-  </script>
-</body>
+      class VideoTranscoder {
+        async transcode(videoBlob, options) {
+          // Simulating video transcoding process
+          await sleep(3000); // Simulate processing time
+          return videoBlob;
+        }
+      }
+
+      // Helper function for delaying execution
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      // Copy the Base64 value to clipboard
+      function copyBase64ToClipboard() {
+        compressedBase64Text.select();
+        document.execCommand('copy');
+        alert('Base64 Value Copied to Clipboard');
+      }
+
+      // Download Base64 as a text file
+      function downloadBase64TextFile() {
+        const base64Data = compressedBase64Text.value;
+        const blob = new Blob([base64Data], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'base64data.txt';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    </script>
+  </body>
 </html>
