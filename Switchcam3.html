@@ -2,13 +2,21 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Recording Example</title>
     <!-- Add Bootstrap CSS -->
+    
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="font-family.css">
     <style>
-        body {
-            background: #d7dadd;
-        }
+        html, body  {
+    background: #d7dadd;
+    font-family: 'Josefin Sans',Arial,"Microsoft JhengHei","fontawesome",serif;
+    
+}
+
 
         #cameraQuality {
             font-weight: bold;
@@ -35,7 +43,7 @@
         }
 
         #videoCanvas {
-            border: 2px solid #ccc;
+            border: 1px solid #050202;
             height: 240px;
             width: 320px;
         }
@@ -79,6 +87,22 @@
             padding: 5px 10px;
             border-radius: 5px;
         }
+
+        .fadeInRight {
+    animation: fadeInRight 1s both;
+  }
+
+  @keyframes fadeInRight {
+    from {
+      opacity: 0;
+      transform: translate3d(100%, 0, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
     </style>
 </head>
 
@@ -91,12 +115,12 @@
     </nav>
 
     <div class="container mt-4">
-        <div class="row">
-            <div class="col-lg-6">
+        <div class=" row ">
+            <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12">
                 <div class="card videocard">
                     <div class="title lg-4">Take a Video</div>
                     <div id="div" class="text-center float-right" style="color: red; font-size: 13px; font-weight: bold;"></div>
-                    <div id="timer" class="text-center" style="color: green; font-size: 18px; font-weight: bold; margin-bottom: 20px;"></div>
+                    <div id="timer" class="text-center" style="color: green; font-size: 15px; font-weight: bold; margin-bottom: 20px;padding: 10px 110px 0px 110px;"></div>
                     <div id="videoCanvasDiv">
                         <canvas id="videoCanvas" class="mb-2"></canvas>
                     </div>
@@ -104,10 +128,13 @@
                         <video id="preview" class="mb-2" controls autoplay muted playsinline height="auto"></video>
 
                     </div>
+                    <div>
                     <span class="caption">Read the caption shown Below:</span>
+                    <br>
                     <span id="textMSG">My name is <span style="font-weight:bold;" id="myName">TEST USER</span> and I
                         want to apply for a DSC through Care4Sign. The code is <span style="font-weight:bold;" id="ranCode"> 123</span></span>
-                    <div id="buttonsContainer">
+                    </div>
+                        <div id="buttonsContainer">
                         <div id="recordBtnDiv">
                             <button id="recordBtn" class="btn btn-primary">Start Recording</button>
                         </div>
@@ -120,7 +147,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-6 col-md-12 col-sm-12 col-xs-12 ">
                 <div class="card contcard">
                     <div class="md-card-content" style="padding: 0px;">
                         <p style="font-size: 20px; color: #00458b; font-weight: bold;">Video Recording
@@ -131,13 +158,14 @@
                     </div>
                 </div>
                 <br>
-                <div class="md-card  one animate fadeInRight" style="background: rgb(255, 255, 255); box-shadow: rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px; display: block;" id="CaptionAlert">
+                <div class="md-card one animate fadeInRight" style="background: rgb(255, 255, 255); box-shadow: rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px; display: none;" id="CaptionAlert">
                     <div class="md-card-content" style="padding: 0px;">
-                        <p style="font-size: 18px; color: #00458b; font-weight: bold;text-align: center;">
-                            <img src="http://localhost:8080/OkycEsignV1/images/alert.gif" style="width: auto; height: 70px;"> Read the caption below video
-                        </p>
+                      <p style="font-size: 18px; color: #00458b; font-weight: bold;text-align: center;">
+                        <img src="http://localhost:8080/OkycEsignV1/images/alert.gif" style="width: auto; height: 70px;"> Read the caption below video
+                      </p>
                     </div>
-                </div>
+                  </div>
+                  
             </div>
         </div>
     </div>
@@ -191,10 +219,24 @@
 
         // Download Base64 as Text File
         downloadBase64Button.addEventListener('click', downloadBase64TextFile);
-
-        // Re-record button click event
+        
+        // Record button click event
         recordBtnDiv.addEventListener('click', reRecordVideo);
 
+        // Re-record button click event
+        rerecordBtn.addEventListener('click', reRecordVideo);
+
+     // Add a click event listener to the "Start Recording" button
+        recordBtnDiv.addEventListener('click', function () {
+        const captionAlert = document.getElementById('CaptionAlert');
+
+        // Add the fadeInRight class to trigger the animation
+        captionAlert.classList.add('fadeInRight');
+
+       // Show the captionAlert div
+       captionAlert.style.display = 'block';
+      });
+      
 
         // Function to hide the canvas and display the preview video
         function hideCanvasAndShowPreview() {
@@ -232,23 +274,24 @@
                     video.onloadedmetadata = () => {
                         video.play();
                         const drawVideoFrame = () => {
-    // Set the canvas background color to black
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
+                     // Set the canvas background color to black
+                     ctx.globalAlpha = 0.3;
+                     ctx.fillStyle = "black";
+                     ctx.fillRect(0, 0, videoCanvas.width,22, videoCanvas.height);
+                     // Draw the video on the canvas
+                     ctx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
 
-    // Draw the video on the canvas
-    ctx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+                     // Display date and time on the canvas on the right side
+                     const now = new Date();
+                     const formattedDateTime = formatDate(now);
+                     ctx.globalAlpha = 1;
+                     ctx.fillStyle = 'white';
+                     ctx.font = '12px Arial';
+                     ctx.textAlign = 'right'; // Align text to the right
+                     ctx.fillText(formattedDateTime, videoCanvas.width -8, 20);
 
-    // Display date and time on the canvas on the right side
-    const now = new Date();
-    const formattedDateTime = formatDate(now);
-    ctx.fillStyle = 'white';
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'right'; // Align text to the right
-    ctx.fillText(formattedDateTime, videoCanvas.width - 10, 20);
-
-    requestAnimationFrame(drawVideoFrame);
-};
+                      requestAnimationFrame(drawVideoFrame);
+                    };
                         drawVideoFrame();
                     };
                 })
@@ -289,7 +332,8 @@
                 let remainingSeconds = 5;
                 countdownInterval = setInterval(() => {
                     remainingSeconds--;
-                    timerElement.textContent = `Recording Started : Time Remaining: ${remainingSeconds}s`;
+                     // Format the remaining time in HH:MM:SS format
+                     timerElement.textContent = `Recording Started: Time Remaining: ${formatTime(remainingSeconds)}`;
 
                     if (remainingSeconds === 0) {
                         clearInterval(countdownInterval);
@@ -333,7 +377,13 @@
                 };
             }
         }
-
+         // Function to format time in HH:MM:SS format
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
         // Display video size
         function displayVideoSize(videoBlob, element) {
             const fileSizeMB = (videoBlob.size / 1024 / 1024).toFixed(2);
@@ -400,19 +450,19 @@
             dateTimeElement.textContent = formattedDateTime;
         }
 
+       
         // Function to format date and time
-        function formatDate(date) {
-            const options = {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-            };
-            return date.toLocaleDateString(undefined, options);
-        }
+function formatDate(date) {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-based
+    const year = date.getFullYear();
+    const hr = date.getHours().toString().padStart(2, '0');
+    const mn = date.getMinutes().toString().padStart(2, '0');
+    const sec = date.getSeconds().toString().padStart(2, '0');
+
+    return day + '/' + month + '/' + year + ' ' + hr + ':' + mn + ':' + sec;
+}
+
     </script>
 </body>
 
