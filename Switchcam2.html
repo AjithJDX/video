@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -11,12 +12,12 @@
   </head>
   <body>
     <h2 id="cameraQuality">Camera Quality is: 480x320, 30fps</h2>
-    <video id="video" autoplay muted playsinline width="320" height="240"></video>
+    <video id="video" autoplay controls playsinline width="320" height="240"></video>
     <button id="recordBtn">Start Recording</button>
     <div id="timer"></div>
     <br>
     <div>
-      <video id="preview" controls autoplay muted playsinline width="320" height="240"></video>
+      <video id="preview" controls autoplay  playsinline width="320" height="240"></video>
       <div id="previewSize"></div>
     </div>
     <br>
@@ -56,7 +57,7 @@
 
       function startVideoRecording() {
         if (!isRecording) {
-          navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 } })
+          navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 } ,audio:true})
             .then((mediaStream) => {
               stream = mediaStream;
               videoElement.srcObject = mediaStream;
